@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/posener/complete"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -42,11 +43,26 @@ func getRates(from string, to string) (error, float64) {
 
 
 func main() {
-	flag.StringVar(&from, "f","usd", "which currency to convert from")
-	flag.StringVar(&to, "t", "rub" , "which currency to convert to")
-	flag.Float64Var(&amount, "a", 1 , "amount of currency to convert")
+	flag.StringVar(&from, "from","usd", "which currency to convert from")
+	flag.StringVar(&to, "to", "rub" , "which currency to convert to")
+	flag.Float64Var(&amount, "amount", 1 , "amount of currency to convert")
+
+	cmp := complete.New(
+		"econv",
+		complete.Command{Flags: complete.Flags{
+			"-from": complete.PredictAnything,
+			"-to": complete.PredictAnything,
+			"-amount": complete.PredictAnything,
+		}},
+	)
+
+	cmp.AddFlags(nil)
 
 	flag.Parse()
+
+	if cmp.Complete() {
+		return
+	}
 
 	_, result := getRates(from, to)
 	fmt.Println(int(result * amount))
