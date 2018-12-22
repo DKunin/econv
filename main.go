@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/posener/complete"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
 )
 
@@ -20,14 +20,25 @@ type Rate struct {
 	Base string `json:"base"`
 }
 
+type SingleForexData struct {
+	Symbol  string `json:"symbol"`
+	Bid float64 `json:"bid"`
+	Ask float64 `json:"ask"`
+	Price float64 `json:"price"`
+	Timestamp int `json:"timestamp"`
+}
+
+type ForexData []SingleForexData
+
+
 func getRates(from string, to string) (error, float64) {
-	url := "https://exchangeratesapi.io/api/latest"
+	url := "https://forex.1forge.com/1.0.3/quotes"
 
 	req, _ := http.NewRequest("GET", url, nil)
 
 	q := req.URL.Query()
-	q.Add("base", strings.ToUpper(from))
-	q.Add("symbols", strings.ToUpper(to))
+	q.Add("api_key", os.Getenv("FORGE_ONE_API"))
+	q.Add("pairs", strings.ToUpper(from) + strings.ToUpper(to))
 	req.URL.RawQuery = q.Encode()
 
 	res, _ := http.DefaultClient.Do(req)
@@ -35,35 +46,21 @@ func getRates(from string, to string) (error, float64) {
 	defer res.Body.Close()
 	body, _ := ioutil.ReadAll(res.Body)
 
-	data := Rate{}
-	err := json.Unmarshal(body, &data)
+	data := ForexData{
+		SingleForexData{},
+	}
 
-	return err, data.Rates[strings.ToUpper(to)].(float64)
+	err := json.Unmarshal(body, &data)
+	return err, data[0].Price
 }
 
 
 func main() {
-	flag.StringVar(&from, "from","usd", "which currency to convert from")
-	flag.StringVar(&to, "to", "rub" , "which currency to convert to")
-	flag.Float64Var(&amount, "amount", 1 , "amount of currency to convert")
-
-	cmp := complete.New(
-		"econv",
-		complete.Command{Flags: complete.Flags{
-			"-from": complete.PredictAnything,
-			"-to": complete.PredictAnything,
-			"-amount": complete.PredictAnything,
-		}},
-	)
-
-	cmp.AddFlags(nil)
+	flag.StringVar(&from, "f","usd", "which currency to convert from")
+	flag.StringVar(&to, "t", "rub" , "which currency to convert to")
+	flag.Float64Var(&amount, "a", 1 , "amount of currency to convert")
 
 	flag.Parse()
-
-	if cmp.Complete() {
-		return
-	}
-
 	_, result := getRates(from, to)
 	fmt.Println(int(result * amount))
 }

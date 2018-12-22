@@ -6,6 +6,10 @@
 
 ```
 
+## Dependencies
+
+You must have FORGE_ONE_API variable in env, which has the API key, which you can get here: https://forex.1forge.com
+
 ## Usage
 
 ```
